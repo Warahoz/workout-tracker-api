@@ -11,10 +11,11 @@ class Exercise(db.Model):
     category = db.Column(db.String, nullable=False)
     equipment_needed = db.Column(db.Boolean, nullable=False, default=False)
 
-    def __repr__(self):
-        return f'<Exercise {self.id}: {self.name}>'
+    VALID_CATEGORIES = ['Cardio', 'Strength', 'Flexibility', 'Balance']
 
-    VALID_CATEGORIES = [ 'Cardio', 'Strength', 'Flexibility', 'Balance']
+    # relationships
+    workout_exercises = db.relationship('WorkoutExercise', back_populates='exercise', cascade='all, delete-orphan')
+    workouts = db.relationship('Workout', secondary='workout_exercises', back_populates='exercises', viewonly=True)
 
     @validates('category')
     def validate_category(self, key, value):
@@ -27,30 +28,39 @@ class Exercise(db.Model):
         if not value or not value.strip():
             raise ValueError("Exercise name cannot be blank")
         return value
-    
+
+    def __repr__(self):
+        return f'<Exercise {self.id}: {self.name}>'
+
+
 class Workout(db.Model):
-    __tablename__= 'workouts'
+    __tablename__ = 'workouts'
 
     id = db.Column(db.Integer, primary_key=True)
     duration_minutes = db.Column(db.Integer, nullable=False, default=30)
     date = db.Column(db.Date, nullable=False)
     notes = db.Column(db.Text, nullable=True)
 
-    __table_args__= (
+    __table_args__ = (
         db.CheckConstraint('duration_minutes > 0', name='check_duration_positive'),
         db.CheckConstraint('duration_minutes <= 600', name='check_duration_max')
     )
+
+    # relationships
+    workout_exercises = db.relationship('WorkoutExercise', back_populates='workout', cascade='all, delete-orphan')
+    exercises = db.relationship('Exercise', secondary='workout_exercises', back_populates='workouts', viewonly=True)
 
     @validates('duration_minutes')
     def validate_duration(self, key, value):
         if value <= 0:
             raise ValueError("Workout duration must be a positive integer")
         if value > 600:
-            raise ValueError("Workout duration seem unrealistic (max 600 minutes)")
+            raise ValueError("Workout duration seems unrealistic (max 600 minutes)")
         return value
 
     def __repr__(self):
         return f'<Workout {self.id}: {self.date}>'
+
 
 class WorkoutExercise(db.Model):
     __tablename__ = 'workout_exercises'
@@ -67,6 +77,10 @@ class WorkoutExercise(db.Model):
         db.CheckConstraint('sets IS NULL OR sets > 0', name='check_sets_positive'),
     )
 
+    # relationships
+    workout = db.relationship('Workout', back_populates='workout_exercises')
+    exercise = db.relationship('Exercise', back_populates='workout_exercises')
+
     @validates('reps', 'sets', 'duration_seconds')
     def validate_positive(self, key, value):
         if value is not None and value <= 0:
@@ -75,20 +89,3 @@ class WorkoutExercise(db.Model):
 
     def __repr__(self):
         return f'<WorkoutExercise {self.id}>'
-
-class Exercise(db.Model):
-    
-    workout_exercises = db.relationship('WorkoutExercise', back_populates='exercise', cascade='all, delete-orphan')
-    workouts = db.relationship('Workout', secondary='workout_exercises', back_populates='exercises', viewonly=True)
-
-
-class Workout(db.Model):
-    
-    workout_exercises = db.relationship('WorkoutExercise', back_populates='workout', cascade='all, delete-orphan')
-    exercises = db.relationship('Exercise', secondary='workout_exercises', back_populates='workouts', viewonly=True)
-
-
-class WorkoutExercise(db.Model):
-    
-    workout = db.relationship('Workout', back_populates='workout_exercises')
-    exercise = db.relationship('Exercise', back_populates='workout_exercises')
