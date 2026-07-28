@@ -28,3 +28,26 @@ class Exercise(db.Model):
             raise ValueError("Exercise name cannot be blank")
         return value
     
+class Workout(db.Model):
+    __tablename__= 'workouts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    duration_minutes = db.Column(db.Integer, nullable=False, default=30)
+    date = db.Column(db.Date, nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+
+    __table_args__= (
+        db.CheckConstraint('duration_minutes > 0', name='check_duration_positive'),
+        db.CheckConstraint('duration_minutes <= 600', name='check_duration_max')
+    )
+
+    @validates('duration_minutes')
+    def validate_duration(self, key, value):
+        if value <= 0:
+            raise ValueError("Workout duration must be a positive integer")
+        if value > 600:
+            raise ValueError("Workout duration seem unrealistic (max 600 minutes)")
+        return value
+
+    def __repr__(self):
+        return f'<Workout {self.id}: {self.date}>'
