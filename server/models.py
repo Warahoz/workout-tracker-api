@@ -51,3 +51,44 @@ class Workout(db.Model):
 
     def __repr__(self):
         return f'<Workout {self.id}: {self.date}>'
+
+class WorkoutExercise(db.Model):
+    __tablename__ = 'workout_exercises'
+
+    id = db.Column(db.Integer, primary_key=True)
+    workout_id = db.Column(db.Integer, db.ForeignKey('workouts.id'), nullable=False)
+    exercise_id = db.Column(db.Integer, db.ForeignKey('exercises.id'), nullable=False)
+    reps = db.Column(db.Integer, nullable=True)
+    sets = db.Column(db.Integer, nullable=True)
+    duration_seconds = db.Column(db.Integer, nullable=True)
+
+    __table_args__ = (
+        db.CheckConstraint('reps IS NULL OR reps > 0', name='check_reps_positive'),
+        db.CheckConstraint('sets IS NULL OR sets > 0', name='check_sets_positive'),
+    )
+
+    @validates('reps', 'sets', 'duration_seconds')
+    def validate_positive(self, key, value):
+        if value is not None and value <= 0:
+            raise ValueError(f"{key} must be a positive number")
+        return value
+
+    def __repr__(self):
+        return f'<WorkoutExercise {self.id}>'
+
+class Exercise(db.Model):
+    
+    workout_exercises = db.relationship('WorkoutExercise', back_populates='exercise', cascade='all, delete-orphan')
+    workouts = db.relationship('Workout', secondary='workout_exercises', back_populates='exercises', viewonly=True)
+
+
+class Workout(db.Model):
+    
+    workout_exercises = db.relationship('WorkoutExercise', back_populates='workout', cascade='all, delete-orphan')
+    exercises = db.relationship('Exercise', secondary='workout_exercises', back_populates='workouts', viewonly=True)
+
+
+class WorkoutExercise(db.Model):
+    
+    workout = db.relationship('Workout', back_populates='workout_exercises')
+    exercise = db.relationship('Exercise', back_populates='workout_exercises')
