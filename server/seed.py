@@ -8,7 +8,7 @@ with app.app_context():
 
     print("Clearing old data...")
     WorkoutExercise.query.delete()
-    Workout.query.delete()
+    Workout.query.delete()  
     Exercise.query.delete()
 
     print("Seeding exercises...")
